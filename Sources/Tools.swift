@@ -4,17 +4,12 @@ import JSONSchemaBuilder
 import MCPServer
 
 @Schemable
-struct ToolInput {
-    let text: String
-}
-
-@Schemable
 struct EmptyInput {}
 
 @Schemable
 struct CursorMoveInput {
-    let x: Double
-    let y: Double
+    let x: String
+    let y: String
 }
 
 @Schemable
@@ -36,7 +31,7 @@ struct LaunchAppInput {
 
 @Schemable
 struct WindowInfoInput {
-    let pid: Int?
+    let pid: String?
 }
 
 @Schemable
@@ -72,7 +67,10 @@ let tools: [any CallableTool] = [
     },
 
     Tool(name: "moveCursor") { (input: CursorMoveInput) in
-        InputControl.moveMouse(to: CGPoint(x: input.x, y: input.y))
+        guard let x = Double(input.x), let y = Double(input.y) else {
+            return [.text(.init(text: "参数无效"))]
+        }
+        InputControl.moveMouse(to: CGPoint(x: x, y: y))
         return [.text(.init(text: "鼠标已移动到 \(input.x), \(input.y)"))]
     },
 
@@ -181,8 +179,10 @@ let tools: [any CallableTool] = [
         let accessibilityManager = AccessibilityManager()
 
         if let pid = input.pid {
-            let jsonString =
-                accessibilityManager.getWindowInfoByPID(pid_t(pid))
+            guard let pidInt = Int(pid) else {
+                return [.text(.init(text: "参数无效"))]
+            }
+            let jsonString = accessibilityManager.getWindowInfoByPID(pid_t(pidInt))
             return [.text(.init(text: jsonString))]
         }
 
