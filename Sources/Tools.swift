@@ -59,7 +59,7 @@ let tools: [any CallableTool] = [
         ]
 
         if let jsonData = try? JSONSerialization.data(withJSONObject: response),
-           let jsonString = String(data: jsonData, encoding: .utf8)
+            let jsonString = String(data: jsonData, encoding: .utf8)
         {
             return [.text(.init(text: jsonString))]
         }
@@ -86,6 +86,32 @@ let tools: [any CallableTool] = [
 
         InputControl.pressKeys(modifiers: .maskCommand, keyCodes: KeyCode.v.rawValue)
         return [.text(.init(text: "已粘贴文本"))]
+    },
+
+    Tool(name: "captureScreen") { (_: EmptyInput) async throws in
+        let screenCaptureManager = ScreenCaptureManager()
+        
+        let image: NSImage? = await withCheckedContinuation { (continuation: CheckedContinuation<NSImage?, Never>) in
+            screenCaptureManager.captureFullScreen { capturedImage in
+                if let unwrappedImage = capturedImage {
+                    // 在这里处理图像数据，避免直接传递对象引用
+                    if let tiffData = unwrappedImage.tiffRepresentation,
+                       let newImage = NSImage(data: tiffData) {
+                        continuation.resume(returning: newImage)
+                    } else {
+                        continuation.resume(returning: nil)
+                    }
+                } else {
+                    continuation.resume(returning: nil)
+                }
+            }
+        }
+        print("******************************--------------------")
+        if let image = image, let tiffData = image.tiffRepresentation {
+            let base64Image = tiffData.base64EncodedString()
+            return [.image(.init(data: base64Image, mimeType: "image/tiff"))]
+        }
+        return [.text(.init(text: "截图失败"))]
     },
 
     Tool(name: "executeCommand") { (input: ExecuteCommandInput) in
@@ -115,7 +141,7 @@ let tools: [any CallableTool] = [
         }
 
         if let jsonData = try? JSONSerialization.data(withJSONObject: response),
-           let jsonString = String(data: jsonData, encoding: .utf8)
+            let jsonString = String(data: jsonData, encoding: .utf8)
         {
             return [.text(.init(text: jsonString))]
         }
@@ -162,7 +188,7 @@ let tools: [any CallableTool] = [
         let appList = apps.map { ["appName": $0.name, "bundleId": $0.bundleId] }
 
         if let jsonData = try? JSONSerialization.data(withJSONObject: appList),
-           let jsonString = String(data: jsonData, encoding: .utf8)
+            let jsonString = String(data: jsonData, encoding: .utf8)
         {
             return [.text(.init(text: jsonString))]
         }
@@ -215,13 +241,13 @@ private func getInstalledApplications() -> [AppInfo] {
                 "Contents/Info.plist")
 
             guard let plistData = try? Data(contentsOf: plistPath),
-                  let plist = try? PropertyListSerialization.propertyList(
-                      from: plistData, options: [], format: nil
-                  )
-                  as? [String: Any],
-                  let bundleId = plist["CFBundleIdentifier"] as? String,
-                  let name = plist["CFBundleName"] as? String ?? plist[
-                      "CFBundleExecutable"] as? String
+                let plist = try? PropertyListSerialization.propertyList(
+                    from: plistData, options: [], format: nil
+                )
+                    as? [String: Any],
+                let bundleId = plist["CFBundleIdentifier"] as? String,
+                let name = plist["CFBundleName"] as? String ?? plist[
+                    "CFBundleExecutable"] as? String
             else { continue }
 
             apps.append(AppInfo(name: name, bundleId: bundleId))
