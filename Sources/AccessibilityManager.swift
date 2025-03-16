@@ -285,6 +285,7 @@ class AccessibilityManager: ObservableObject {
         )
 
         if result == .success, let windows = windowList as? [AXUIElement] {
+            // TODO: 这里只处理第一个窗口, 这个不优雅吧可能
             for window in windows {
                 let jsonString = exportAccessibilityTreeToJSON(element: window)
                 return jsonString // 只处理第一个窗口

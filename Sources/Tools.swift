@@ -96,6 +96,7 @@ let tools: [any CallableTool] = [
 
         let image: Data? = await withCheckedContinuation {
             (continuation: CheckedContinuation<Data?, Never>) in
+            mcpLogger.info("Capturing screen...")
             screenCaptureManager.captureFullScreen { capturedImage in
                 if let unwrappedImage = capturedImage,
                    let tiffData = unwrappedImage.tiffRepresentation,
@@ -104,6 +105,7 @@ let tools: [any CallableTool] = [
                        using: .jpeg, properties: [.compressionFactor: 0.75]
                    )
                 {
+                    mcpLogger.info("Capturing screen successful")
                     continuation.resume(returning: jpegData)
                 } else {
                     continuation.resume(returning: nil)
