@@ -13,11 +13,6 @@ func _AXUIElementGetWindow(
 ) -> AXError
 
 class AccessibilityManager: ObservableObject {
-    // 发布属性用于 SwiftUI 绑定
-    @Published var focusedWindowID: UInt32 = 0
-    @Published var focusedWindowPID: pid_t = 0
-    @Published var focusedAppName: String = ""
-
     // 处理属性值的辅助函数
     private func processAttributeValue(
         _ attributeName: String, _ attributeValue: AnyObject?
@@ -183,7 +178,6 @@ class AccessibilityManager: ObservableObject {
                 jsonString = jsonStr
             }
         } catch {
-            print("JSON 序列化错误: \(error.localizedDescription)")
             jsonString = "{\"error\": \"JSON 序列化失败\"}"
         }
 
@@ -191,7 +185,10 @@ class AccessibilityManager: ObservableObject {
     }
 
     // 获取焦点窗口PID NAME windowID
-    public func getFocusedWindowInfo() {
+    public func getFocusedWindowInfo() -> (pid: pid_t, name: String, windowID: UInt32) {
+        var pid: pid_t = 0
+        var windowID: UInt32 = 0
+        var name = ""
         let systemWideElement = AXUIElementCreateSystemWide()
 
         // 获取聚焦元素
@@ -200,35 +197,16 @@ class AccessibilityManager: ObservableObject {
             systemWideElement, kAXFocusedUIElementAttribute as CFString,
             &focusedElement
         )
-
-        // 添加错误处理
         if result != .success {
-            print("获取焦点窗口失败: \(result)")
-            return
-        }
-
-        guard result == .success,
-              let focusedUIElement = focusedElement
-        else {
-            print("获取焦点窗口失败 - 错误代码: \(result.rawValue)")
-            self.focusedAppName = "未知"
-            self.focusedWindowID = 0
-            self.focusedWindowPID = 0
-            return
+            return (pid, name, windowID)
         }
 
         // 通过聚焦元素获取PID
-        var pid: pid_t = 0
         let pidResult = AXUIElementGetPid(
-            focusedUIElement as! AXUIElement, &pid
+            focusedElement as! AXUIElement, &pid
         )
-
         if pidResult != .success {
-            print("获取PID失败 - 错误代码: \(pidResult.rawValue)")
-            self.focusedAppName = "未知"
-            self.focusedWindowID = 0
-            self.focusedWindowPID = 0
-            return
+            return (pid, name, windowID)
         }
 
         let appElement = AXUIElementCreateApplication(pid)
@@ -238,52 +216,33 @@ class AccessibilityManager: ObservableObject {
         let appNameResult = AXUIElementCopyAttributeValue(
             appElement, kAXTitleAttribute as CFString, &appName
         )
+        if appNameResult == .success {
+            name = appName as! String
+        }
 
-        // 获取窗口信息
-        var windowList: CFTypeRef?
-        let windowListResult = AXUIElementCopyAttributeValue(
-            appElement, kAXWindowsAttribute as CFString, &windowList
-        )
+        //// 获取一个pid的多个窗口
+        // var windowList: CFTypeRef?
+        // let windowListResult = AXUIElementCopyAttributeValue(
+        //    appElement, kAXWindowsAttribute as CFString, &windowList
+        // )
+        // if windowListResult == .success {}
 
-        // 获取窗口
         var window: AnyObject?
         let windowResult = AXUIElementCopyAttributeValue(
-            focusedUIElement as! AXUIElement,
+            focusedElement as! AXUIElement,
             kAXWindowAttribute as CFString, &window
         )
-
-        self.focusedWindowPID = pid
-        self.focusedAppName = "未知"
-        self.focusedWindowID = 0
-
-        // 更新应用名称
-        if appNameResult == .success {
-            self.focusedAppName = appName as! String
-        }
-
-        // 获取窗口列表
-        if windowListResult == .success,
-           let windows = windowList as? [AXUIElement]
-        {
-            print("窗口列表: \(windows)")
-        }
-
-        // 更新窗口ID
         if windowResult == .success {
-            print("windowResult success")
-            let windowUIElement = window as! AXUIElement
             var windowRef: CGWindowID = 0
             let windowsNum = _AXUIElementGetWindow(
-                windowUIElement, &windowRef
+                window as! AXUIElement, &windowRef
             )
-
             if windowsNum == .success {
-                self.focusedWindowID = windowRef
-            } else {
-                print("获取窗口ID失败 - 错误代码: \(windowsNum.rawValue)")
-                self.focusedWindowID = 0
+                windowID = windowRef
             }
         }
+
+        return (pid, name, windowID)
     }
 
     // 根据聚焦窗口获取窗口结构
@@ -296,7 +255,6 @@ class AccessibilityManager: ObservableObject {
             systemWideElement, kAXFocusedUIElementAttribute as CFString,
             &focusedElement
         )
-
         guard result == .success, let focusedUIElement = focusedElement else {
             return "获取焦点窗口失败"
         }
@@ -307,7 +265,6 @@ class AccessibilityManager: ObservableObject {
             focusedUIElement as! AXUIElement, kAXWindowAttribute as CFString,
             &window
         )
-
         guard windowResult == .success, let windowUIElement = window else {
             return "获取窗口失败"
         }
@@ -361,7 +318,7 @@ class AccessibilityManager: ObservableObject {
                 return jsonString
             }
         } catch {
-            print("JSON 序列化错误: \(error.localizedDescription)")
+            return "{\"error\": \"JSON 序列化失败\"}"
         }
 
         return "{\"error\": \"JSON 序列化失败\"}"
