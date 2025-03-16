@@ -2,6 +2,9 @@ import AppKit
 import Foundation
 import JSONSchemaBuilder
 import MCPServer
+import os
+
+let mcpLogger = Logger(subsystem: "com.macpilot.mcp", category: "mcp")
 
 @Schemable
 struct EmptyInput {}
@@ -86,6 +89,33 @@ let tools: [any CallableTool] = [
 
         InputControl.pressKeys(modifiers: .maskCommand, keyCodes: KeyCode.v.rawValue)
         return [.text(.init(text: "已粘贴文本"))]
+    },
+
+    Tool(name: "captureScreen") { (_: EmptyInput) async throws in
+        let screenCaptureManager = ScreenCaptureManager()
+
+        let image: Data? = await withCheckedContinuation {
+            (continuation: CheckedContinuation<Data?, Never>) in
+            screenCaptureManager.captureFullScreen { capturedImage in
+                if let unwrappedImage = capturedImage,
+                   let tiffData = unwrappedImage.tiffRepresentation,
+                   let bitmapImage = NSBitmapImageRep(data: tiffData),
+                   let jpegData = bitmapImage.representation(
+                       using: .jpeg, properties: [.compressionFactor: 0.75]
+                   )
+                {
+                    continuation.resume(returning: jpegData)
+                } else {
+                    continuation.resume(returning: nil)
+                }
+            }
+        }
+
+        if image == nil {
+            return [.text(.init(text: "Screenshot failed"))]
+        }
+
+        return [.image(.init(data: image!.base64EncodedString(), mimeType: "image/jpeg"))]
     },
 
     Tool(name: "executeCommand") { (input: ExecuteCommandInput) in
