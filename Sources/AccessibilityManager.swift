@@ -198,6 +198,7 @@ class AccessibilityManager: ObservableObject {
             &focusedElement
         )
         if result != .success {
+            mcpLogger.error("获取聚焦元素失败")
             return (pid, name, windowID)
         }
 
@@ -206,6 +207,7 @@ class AccessibilityManager: ObservableObject {
             focusedElement as! AXUIElement, &pid
         )
         if pidResult != .success {
+            mcpLogger.error("获取PID失败")
             return (pid, name, windowID)
         }
 

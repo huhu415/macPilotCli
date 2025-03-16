@@ -205,6 +205,21 @@ let tools: [any CallableTool] = [
         return [.text(.init(text: jsonString))]
     },
 
+    Tool(name: "getFocusedWindowInfo") { (_: EmptyInput) in
+        let accessibilityManager = AccessibilityManager()
+        let part3Item = accessibilityManager.getFocusedWindowInfo()
+
+        let resultString = """
+        {
+          "pid": \(part3Item.pid),
+          "name": "\(part3Item.name)",
+          "windowID": \(part3Item.windowID)
+        }
+        """
+
+        return [.text(.init(text: resultString))]
+    },
+
     Tool(name: "getWindowInfo") { (input: WindowInfoInput) async throws in
         let accessibilityManager = AccessibilityManager()
 
