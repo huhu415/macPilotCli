@@ -15,5 +15,3 @@ stream:
 
 format:
 	swiftformat .
-
-.PHONY: build format debug

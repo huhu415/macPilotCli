@@ -33,22 +33,22 @@ struct LaunchAppInput {
 }
 
 @Schemable
-struct WindowInfoInput {
-    let pid: String?
+struct WindowsInfoInput {
+    let focusedOnly: Bool?
 }
 
 @Schemable
-struct RepeatToolInput {
-    let text: String
+struct WindowInfoInput {
+    let pid: String?
+    let windowNumber: String?
 }
 
 @MainActor
 let tools: [any CallableTool] = [
-    Tool(name: "repeat") { (input: RepeatToolInput) in
-        [.text(.init(text: input.text))]
-    },
-
-    Tool(name: "getCursorPosition") { (_: EmptyInput) in
+    Tool(
+        name: "getCursorPosition",
+        description: "Get the current mouse position in the system, including x, y, screen width, height, and scale"
+    ) { (_: EmptyInput) in
         let position = InputControl.getCurrentMousePosition()
         let mainScreen = NSScreen.main
         let response: [String: Any] = [
@@ -69,7 +69,10 @@ let tools: [any CallableTool] = [
         return [.text(.init(text: "获取鼠标位置失败"))]
     },
 
-    Tool(name: "moveCursor") { (input: CursorMoveInput) in
+    Tool(
+        name: "moveCursor",
+        description: "Move the mouse to the specified position"
+    ) { (input: CursorMoveInput) in
         guard let x = Double(input.x), let y = Double(input.y) else {
             return [.text(.init(text: "参数无效"))]
         }
@@ -77,12 +80,19 @@ let tools: [any CallableTool] = [
         return [.text(.init(text: "鼠标已移动到 \(input.x), \(input.y)"))]
     },
 
-    Tool(name: "clickMouse") { (_: EmptyInput) in
+    Tool(
+        name: "clickMouse",
+        description: "Click the mouse at the current position"
+    ) { (_: EmptyInput) in
         InputControl.mouseClick(at: InputControl.getCurrentMousePosition())
         return [.text(.init(text: "已点击鼠标"))]
     },
 
-    Tool(name: "pasteText") { (input: PasteInput) in
+    // 本质是把文本放在剪贴板, 然后按下command+v
+    Tool(
+        name: "pasteText",
+        description: "Paste text by copying it to clipboard and simulating Command+V keystroke"
+    ) { (input: PasteInput) in
         let pasteboard = NSPasteboard.general
         pasteboard.declareTypes([.string], owner: nil)
         pasteboard.setString(input.text, forType: .string)
@@ -91,7 +101,10 @@ let tools: [any CallableTool] = [
         return [.text(.init(text: "已粘贴文本"))]
     },
 
-    Tool(name: "captureScreen") { (_: EmptyInput) async throws in
+    Tool(
+        name: "captureScreen",
+        description: "Capture the full screen and return the image data(base64 encoded)"
+    ) { (_: EmptyInput) async throws in
         let screenCaptureManager = ScreenCaptureManager()
 
         let image: Data? = await withCheckedContinuation {
@@ -120,7 +133,10 @@ let tools: [any CallableTool] = [
         return [.image(.init(data: image!.base64EncodedString(), mimeType: "image/jpeg"))]
     },
 
-    Tool(name: "executeCommand") { (input: ExecuteCommandInput) in
+    Tool(
+        name: "shell",
+        description: "Executes a shell command in the terminal and returns the command output, exit status, and any error messages"
+    ) { (input: ExecuteCommandInput) in
         let args = input.args ?? []
         let process = Process()
         let outputPipe = Pipe()
@@ -154,7 +170,10 @@ let tools: [any CallableTool] = [
         return [.text(.init(text: "命令执行失败"))]
     },
 
-    Tool(name: "launchApp") { (input: LaunchAppInput) in
+    Tool(
+        name: "openApp",
+        description: "Open an application using either appName or bundleId"
+    ) { (input: LaunchAppInput) in
         guard input.bundleId != nil || input.appName != nil else {
             return [.text(.init(text: "错误：必须提供bundleId或appName"))]
         }
@@ -189,7 +208,10 @@ let tools: [any CallableTool] = [
         return [.text(.init(text: "已启动应用"))]
     },
 
-    Tool(name: "getAppsList") { (_: EmptyInput) in
+    Tool(
+        name: "listApps",
+        description: "List all installed applications with their appName and bundleId"
+    ) { (_: EmptyInput) in
         let apps = getInstalledApplications()
         let appList = apps.map { ["appName": $0.name, "bundleId": $0.bundleId] }
 
@@ -201,40 +223,51 @@ let tools: [any CallableTool] = [
         return [.text(.init(text: "获取应用列表失败"))]
     },
 
-    Tool(name: "getWindowsList") { (_: EmptyInput) in
+    Tool(
+        name: "getWindowsInfo",
+        description: "Get all windows information. If focusedOnly is true, returns only the focused window, otherwise returns all windows list"
+    ) { (input: WindowsInfoInput) in
         let accessibilityManager = AccessibilityManager()
+
+        // 如果focusedOnly为true，则获取当前焦点窗口信息
+        if input.focusedOnly == true {
+            let focusedWindow: (pid: pid_t, name: String, windowID: UInt32) = accessibilityManager.getFocusedWindowInfo()
+
+            let resultString = """
+            {
+              "pid": \(focusedWindow.pid),
+              "name": "\(focusedWindow.name)",
+              "windowID": \(focusedWindow.windowID)
+            }
+            """
+
+            return [.text(.init(text: resultString))]
+        }
+
+        // 否则获取所有窗口列表
         let jsonString = accessibilityManager.getWindowsListInfo()
         return [.text(.init(text: jsonString))]
     },
 
-    Tool(name: "getFocusedWindowInfo") { (_: EmptyInput) in
-        let accessibilityManager = AccessibilityManager()
-        let part3Item = accessibilityManager.getFocusedWindowInfo()
-
-        let resultString = """
-        {
-          "pid": \(part3Item.pid),
-          "name": "\(part3Item.name)",
-          "windowID": \(part3Item.windowID)
-        }
-        """
-
-        return [.text(.init(text: resultString))]
-    },
-
-    Tool(name: "getWindowInfo") { (input: WindowInfoInput) async throws in
+    Tool(
+        name: "getWindowA11yInfo",
+        description: "Get the window accessibility information. If pid and windowNumber are provided, get the window information by PID and windowNumber, otherwise get the focused window information"
+    ) { (input: WindowInfoInput) in
         let accessibilityManager = AccessibilityManager()
 
-        if let pid = input.pid {
+        if let pid = input.pid, let windowNumber = input.windowNumber {
             guard let pidInt = Int(pid) else {
                 return [.text(.init(text: "参数无效"))]
             }
-            let jsonString = accessibilityManager.getWindowInfoByPID(pid_t(pidInt))
+
+            let jsonString = accessibilityManager.getWindowsStructureByPID(
+                pid_t(pidInt), UInt32(windowNumber)
+            )
             return [.text(.init(text: jsonString))]
         }
 
         // 获取当前焦点窗口信息
-        let jsonString = accessibilityManager.getWindowStructure()
+        let jsonString = accessibilityManager.getFocusedWindowStructure()
         return [.text(.init(text: jsonString))]
     },
 ]

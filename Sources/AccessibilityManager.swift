@@ -248,7 +248,7 @@ class AccessibilityManager: ObservableObject {
     }
 
     // 根据聚焦窗口获取窗口结构
-    public func getWindowStructure() -> String {
+    public func getFocusedWindowStructure() -> String {
         let systemWideElement = AXUIElementCreateSystemWide()
 
         // 获取聚焦元素
@@ -276,8 +276,8 @@ class AccessibilityManager: ObservableObject {
             element: windowUIElement as! AXUIElement)
     }
 
-    // 根据PID获取窗口结构
-    public func getWindowInfoByPID(_ pid: pid_t) -> String {
+    // 根据PID获取窗口结构, 如果windowID为0, 则获取第一个窗口, 否则获取指定窗口
+    public func getWindowsStructureByPID(_ pid: pid_t, _ windowID: UInt32? = 0) -> String {
         let appElement = AXUIElementCreateApplication(pid)
         var windowList: CFTypeRef?
         let result = AXUIElementCopyAttributeValue(
@@ -285,13 +285,29 @@ class AccessibilityManager: ObservableObject {
         )
 
         if result == .success, let windows = windowList as? [AXUIElement] {
-            // TODO: 这里只处理第一个窗口, 这个不优雅吧可能
-            for window in windows {
-                let jsonString = exportAccessibilityTreeToJSON(element: window)
-                return jsonString // 只处理第一个窗口
+            if let windowID = windowID, windowID != 0 {
+                // 查找指定的窗口ID
+                for window in windows {
+                    var windowRef: CGWindowID = 0
+                    let windowsNum = _AXUIElementGetWindow(
+                        window, &windowRef
+                    )
+                    if windowsNum == .success {
+                        if windowRef == windowID {
+                            return exportAccessibilityTreeToJSON(element: window)
+                        }
+                    }
+                }
+                return "未找到指定ID的窗口"
+            } else {
+                // 获取第一个窗口
+                if let firstWindow = windows.first {
+                    return exportAccessibilityTreeToJSON(element: firstWindow)
+                }
             }
         }
-        return "获取窗口信息失败"
+
+        return "未找到pid为\(pid)的窗口"
     }
 
     // 获取pid为1500以上的窗口信息列表
