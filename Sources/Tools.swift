@@ -39,8 +39,8 @@ struct WindowsInfoInput {
 
 @Schemable
 struct WindowInfoInput {
-    let pid: String?
-    let windowNumber: String?
+    let pid: Int?
+    let windowNumber: Int?
 }
 
 @MainActor
@@ -73,11 +73,11 @@ let tools: [any CallableTool] = [
         name: "moveCursor",
         description: "Move the mouse to the specified position"
     ) { (input: CursorMoveInput) in
-        guard let x = Double(input.x), let y = Double(input.y) else {
-            return [.text(.init(text: "参数无效"))]
+        if let x = Double(input.x), let y = Double(input.y) {
+            InputControl.moveMouse(to: CGPoint(x: x, y: y))
+            return [.text(.init(text: "鼠标已移动到 \(x), \(y)"))]
         }
-        InputControl.moveMouse(to: CGPoint(x: x, y: y))
-        return [.text(.init(text: "鼠标已移动到 \(input.x), \(input.y)"))]
+        return [.text(.init(text: "参数无效"))]
     },
 
     Tool(
@@ -255,13 +255,9 @@ let tools: [any CallableTool] = [
     ) { (input: WindowInfoInput) in
         let accessibilityManager = AccessibilityManager()
 
-        if let pid = input.pid, let windowNumber = input.windowNumber {
-            guard let pidInt = Int(pid) else {
-                return [.text(.init(text: "参数无效"))]
-            }
-
+        if let pid = input.pid, let windowNumber = input.windowNumber, pid > 0, windowNumber > 0 {
             let jsonString = accessibilityManager.getWindowsStructureByPID(
-                pid_t(pidInt), UInt32(windowNumber)
+                pid_t(pid), UInt32(windowNumber)
             )
             return [.text(.init(text: jsonString))]
         }
