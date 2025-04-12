@@ -4,7 +4,7 @@ build:
 resolve:
 	swift package resolve
 
-mcpDebug:
+mcp:
 	npx @modelcontextprotocol/inspector /Users/hello/projects/macPilotCli/.build/debug/macPilotCli
 
 stream:

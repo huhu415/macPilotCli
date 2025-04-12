@@ -1,5 +1,5 @@
 {
-  "originHash" : "8ac34c5b6f6f8e2ef6d4297f8a3460e27d6d90a38498e8470d17a4604255fda6",
+  "originHash" : "1708b5a53c775058d3d348601f56ef29d0fe645150664c39d9f726bcb8a15d97",
   "pins" : [
     {
       "identity" : "jsonrpc",
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/gsabran/mcp-swift-sdk",
       "state" : {
-        "revision" : "001947d6e85e9db30b4e11ef2cf75126643043f2",
-        "version" : "0.2.2"
+        "revision" : "5399cccd2c5b481e641cbb3ccdba12bf5bd1d2d5",
+        "version" : "0.2.3"
       }
     },
     {
@@ -26,15 +26,6 @@
       "state" : {
         "revision" : "707fc4c2d53138e8fbb4ee9e6669b050ba4b2239",
         "version" : "0.3.2"
-      }
-    },
-    {
-      "identity" : "swift-memberwise-init-macro",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/gohanlon/swift-memberwise-init-macro",
-      "state" : {
-        "revision" : "47a2bdf45f1567e7324438f8482e362ee1c3fb44",
-        "version" : "0.5.2"
       }
     },
     {

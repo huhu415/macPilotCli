@@ -9,7 +9,7 @@ let package = Package(
         .macOS(.v14), // 添加平台要求为 macOS 14.0
     ],
     dependencies: [
-        .package(url: "https://github.com/gsabran/mcp-swift-sdk", from: "0.2.2"),
+        .package(url: "https://github.com/gsabran/mcp-swift-sdk", from: "0.2.3"),
     ],
     targets: [
         .executableTarget(
