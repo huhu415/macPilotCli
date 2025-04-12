@@ -4,6 +4,9 @@ build:
 resolve:
 	swift package resolve
 
+debug:
+	@CompileDaemon -build="make build"
+
 mcp:
 	npx @modelcontextprotocol/inspector /Users/hello/projects/macPilotCli/.build/debug/macPilotCli
 
@@ -12,3 +15,5 @@ stream:
 
 format:
 	swiftformat .
+
+.PHONY: build format debug

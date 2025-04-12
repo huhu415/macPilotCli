@@ -61,7 +61,7 @@ let tools: [any CallableTool] = [
             ],
         ]
 
-        if let jsonData = try? JSONSerialization.data(withJSONObject: response),
+        if let jsonData = try? JSONSerialization.data(withJSONObject: response, options: .sortedKeys),
            let jsonString = String(data: jsonData, encoding: .utf8)
         {
             return [.text(.init(text: jsonString))]
@@ -146,7 +146,7 @@ let tools: [any CallableTool] = [
             response["error"] = error.localizedDescription
         }
 
-        if let jsonData = try? JSONSerialization.data(withJSONObject: response),
+        if let jsonData = try? JSONSerialization.data(withJSONObject: response, options: .sortedKeys),
            let jsonString = String(data: jsonData, encoding: .utf8)
         {
             return [.text(.init(text: jsonString))]
@@ -193,7 +193,7 @@ let tools: [any CallableTool] = [
         let apps = getInstalledApplications()
         let appList = apps.map { ["appName": $0.name, "bundleId": $0.bundleId] }
 
-        if let jsonData = try? JSONSerialization.data(withJSONObject: appList),
+        if let jsonData = try? JSONSerialization.data(withJSONObject: appList, options: .sortedKeys),
            let jsonString = String(data: jsonData, encoding: .utf8)
         {
             return [.text(.init(text: jsonString))]

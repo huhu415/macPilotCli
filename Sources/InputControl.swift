@@ -16,9 +16,17 @@ enum KeyCode: CGKeyCode {
 }
 
 class InputControl {
-    // 获取当前鼠标位置
+    // 获取当前鼠标位置, 原点在左上角, Quartz坐标系
     static func getCurrentMousePosition() -> CGPoint {
-        return NSEvent.mouseLocation
+        let point = NSEvent.mouseLocation
+
+        // 获取主屏幕的高度
+        let screenHeight = NSScreen.main?.frame.size.height ?? 0
+
+        // 转换坐标系：y坐标从底部向上变为从顶部向下
+        let convertedPoint = NSPoint(x: point.x, y: screenHeight - point.y)
+
+        return convertedPoint
     }
 
     // 移动鼠标到指定位置
