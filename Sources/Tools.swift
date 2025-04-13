@@ -18,6 +18,12 @@ struct MouseControlInput {
 }
 
 @Schemable
+struct ScrollMouseInput {
+    let horizontal: Int?
+    let vertical: Int?
+}
+
+@Schemable
 struct PasteInput {
     let text: String
 }
@@ -77,7 +83,7 @@ let tools: [any CallableTool] = [
     ) { (input: MouseControlInput) in
         // 确定使用哪个鼠标按钮
         let mouseButton: CGMouseButton = input.rightClick == true ? .right : .left
-        
+
         // 如果提供了坐标，移动鼠标到指定位置
         if let xStr = input.x, let yStr = input.y,
            let x = Double(xStr), let y = Double(yStr)
@@ -101,6 +107,17 @@ let tools: [any CallableTool] = [
         }
 
         return [.text(.init(text: "Invalid parameters, please provide coordinates or set click to true"))]
+    },
+
+    // 增加滚动工具
+    Tool(
+        name: "scrollMouse",
+        description: "Scroll the mouse wheel in the specified direction"
+    ) { (input: ScrollMouseInput) in
+        let deltaHorizontal = input.horizontal ?? 0
+        let deltaVertical = input.vertical ?? 0
+        InputControl.scrollMouse(deltaHorizontal: Int32(deltaHorizontal), deltaVertical: Int32(deltaVertical))
+        return [.text(.init(text: "Mouse scrolled \(deltaHorizontal), \(deltaVertical)"))]
     },
 
     // 本质是把文本放在剪贴板, 然后按下command+v

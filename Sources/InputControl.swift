@@ -68,6 +68,20 @@ class InputControl {
         }
     }
 
+    // 模拟鼠标滚动
+    static func scrollMouse(deltaHorizontal: Int32, deltaVertical: Int32) {
+        let scrollEvent = CGEvent(
+            scrollWheelEvent2Source: nil,
+            units: .pixel, // 或使用 .line
+            wheelCount: 2, // 使用两个维度
+            wheel1: deltaVertical, // 垂直方向
+            wheel2: deltaHorizontal, // 水平方向
+            wheel3: 0 // 不旋转
+        )
+
+        scrollEvent?.post(tap: .cghidEventTap)
+    }
+
     // 模拟键盘按键
     static func pressKey(keyCode: CGKeyCode) {
         let keyDown = CGEvent(
