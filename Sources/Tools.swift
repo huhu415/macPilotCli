@@ -11,43 +11,55 @@ struct EmptyInput {}
 
 @Schemable
 struct MouseControlInput {
+    @SchemaOptions(description: "X coordinate for mouse position, omit to use current position")
     let x: String?
+    @SchemaOptions(description: "Y coordinate for mouse position, omit to use current position")
     let y: String?
-    let click: Bool?
-    let rightClick: Bool?
+    @SchemaOptions(description: "Click the mouse: left, right, null")
+    let clickType: String
 }
 
 @Schemable
 struct ScrollMouseInput {
-    let horizontal: Int?
-    let vertical: Int?
+    @SchemaOptions(description: "negative for left, positive for right, 0 for no horizontal scroll")
+    let horizontal: Int
+    @SchemaOptions(description: "negative for down, positive for up, 0 for no vertical scroll")
+    let vertical: Int
 }
 
 @Schemable
 struct PasteInput {
+    @SchemaOptions(description: "Text to paste")
     let text: String
 }
 
 @Schemable
 struct ExecuteCommandInput {
+    @SchemaOptions(description: "Command to execute")
     let command: String
+    @SchemaOptions(description: "Optional arguments for the command")
     let args: [String]?
 }
 
 @Schemable
 struct LaunchAppInput {
+    @SchemaOptions(description: "Bundle identifier of the application. (choose either this or appName)")
     let bundleId: String?
+    @SchemaOptions(description: "Name of the application. (choose either this or bundleId)")
     let appName: String?
 }
 
 @Schemable
 struct WindowsInfoInput {
-    let focusedOnly: Bool?
+    @SchemaOptions(description: "true: only focused window, false: all windows")
+    let focusedOnly: Bool
 }
 
 @Schemable
 struct WindowInfoInput {
+    @SchemaOptions(description: "Process ID of the window (recommended to provide both pid and windowNumber, or neither for focused window)")
     let pid: Int?
+    @SchemaOptions(description: "Window identifier number (recommended to provide both pid and windowNumber, or neither for focused window)")
     let windowNumber: Int?
 }
 
@@ -79,45 +91,55 @@ let tools: [any CallableTool] = [
 
     Tool(
         name: "controlMouse",
-        description: "Move the mouse to the specified position and optionally click. If no coordinates are provided, click at the current position. Use rightClick=true for right-click"
+        description: "Move the mouse to the specified absolute position (not relative movement) and optionally click."
     ) { (input: MouseControlInput) in
-        // 确定使用哪个鼠标按钮
-        let mouseButton: CGMouseButton = input.rightClick == true ? .right : .left
+        // 确定目标位置
+        var targetPosition: CGPoint
 
         // 如果提供了坐标，移动鼠标到指定位置
         if let xStr = input.x, let yStr = input.y,
            let x = Double(xStr), let y = Double(yStr)
         {
-            InputControl.moveMouse(to: CGPoint(x: x, y: y))
-
-            // 如果需要点击，在新位置点击
-            if input.click == true {
-                InputControl.mouseClick(at: CGPoint(x: x, y: y), button: mouseButton)
-                let buttonType = input.rightClick == true ? "right-clicked" : "clicked"
-                return [.text(.init(text: "Mouse moved to \(x), \(y) and \(buttonType)"))]
-            }
-            return [.text(.init(text: "Mouse moved to \(x), \(y)"))]
+            targetPosition = CGPoint(x: x, y: y)
+            InputControl.moveMouse(to: targetPosition)
+        } else {
+            // 否则使用当前位置
+            targetPosition = InputControl.getCurrentMousePosition()
         }
 
-        // 如果没有提供坐标但需要点击，在当前位置点击
-        if input.click == true {
-            InputControl.mouseClick(at: InputControl.getCurrentMousePosition(), button: mouseButton)
-            let buttonType = input.rightClick == true ? "right-clicked" : "clicked"
-            return [.text(.init(text: "Mouse \(buttonType) at current position"))]
+        // 处理点击
+        var mouseButton: CGMouseButton
+        var buttonTypeString: String
+
+        switch input.clickType.lowercased() {
+        case "right":
+            mouseButton = .right
+            buttonTypeString = "right-clicked"
+        case "left":
+            mouseButton = .left
+            buttonTypeString = "left-clicked"
+        case "null":
+            return [.text(.init(text: "Mouse moved to \(targetPosition.x), \(targetPosition.y)"))]
+        default:
+            return [.text(.init(text: "Invalid click type, please use 'left' or 'right'"))]
         }
 
-        return [.text(.init(text: "Invalid parameters, please provide coordinates or set click to true"))]
+        InputControl.mouseClick(at: targetPosition, button: mouseButton)
+
+        if let x = input.x, let y = input.y {
+            return [.text(.init(text: "Mouse moved to \(x), \(y) and \(buttonTypeString)"))]
+        } else {
+            return [.text(.init(text: "Mouse \(buttonTypeString) at current position"))]
+        }
     },
 
     // 增加滚动工具
     Tool(
         name: "scrollMouse",
-        description: "Scroll the mouse wheel in the specified direction"
+        description: "Scroll the mouse wheel in the specified direction (relative movement)"
     ) { (input: ScrollMouseInput) in
-        let deltaHorizontal = input.horizontal ?? 0
-        let deltaVertical = input.vertical ?? 0
-        InputControl.scrollMouse(deltaHorizontal: Int32(deltaHorizontal), deltaVertical: Int32(deltaVertical))
-        return [.text(.init(text: "Mouse scrolled \(deltaHorizontal), \(deltaVertical)"))]
+        InputControl.scrollMouse(deltaHorizontal: Int32(input.horizontal), deltaVertical: Int32(input.vertical))
+        return [.text(.init(text: "Mouse scrolled \(input.horizontal), \(input.vertical)"))]
     },
 
     // 本质是把文本放在剪贴板, 然后按下command+v
@@ -257,7 +279,7 @@ let tools: [any CallableTool] = [
 
     Tool(
         name: "getWindowsInfo",
-        description: "Get all windows information. If focusedOnly is true, returns only the focused window, otherwise returns all windows list"
+        description: "Get all windows information. include pid, name, windowID, etc."
     ) { (input: WindowsInfoInput) in
         let accessibilityManager = AccessibilityManager()
 
@@ -283,7 +305,7 @@ let tools: [any CallableTool] = [
 
     Tool(
         name: "getWindowA11yInfo",
-        description: "Get the window accessibility information. If pid and windowNumber are provided, get the window information by PID and windowNumber, otherwise get the focused window information"
+        description: "Get the window accessibility information. The focused window may not work reliably. If it doesn't work, use getWindowsInfo to get the pid and windowNumber, then use getWindowA11yInfo"
     ) { (input: WindowInfoInput) in
         let accessibilityManager = AccessibilityManager()
 
