@@ -37,8 +37,6 @@ struct PasteInput {
 struct ExecuteCommandInput {
     @SchemaOptions(description: "Command to execute")
     let command: String
-    @SchemaOptions(description: "Optional arguments for the command")
-    let args: [String]?
 }
 
 @Schemable
@@ -191,13 +189,12 @@ let tools: [any CallableTool] = [
         name: "shell",
         description: "Executes a shell command in the terminal and returns the command output, exit status, and any error messages"
     ) { (input: ExecuteCommandInput) in
-        let args = input.args ?? []
         let process = Process()
         let outputPipe = Pipe()
         let errorPipe = Pipe()
 
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        process.arguments = [input.command] + args
+        process.arguments = input.command.components(separatedBy: .whitespaces)
         process.standardOutput = outputPipe
         process.standardError = errorPipe
 
