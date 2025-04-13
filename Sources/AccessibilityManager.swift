@@ -17,7 +17,7 @@ class AccessibilityManager: ObservableObject {
     private func processAttributeValue(
         _ attributeName: String, _ attributeValue: AnyObject?
     ) -> (String, Any)? {
-        guard let attributeValue = attributeValue else { return nil }
+        guard let attributeValue else { return nil }
 
         // 将属性名作为键
         let key = attributeName
@@ -285,7 +285,7 @@ class AccessibilityManager: ObservableObject {
         )
 
         if result == .success, let windows = windowList as? [AXUIElement] {
-            if let windowID = windowID, windowID != 0 {
+            if let windowID, windowID != 0 {
                 // 查找指定的窗口ID
                 for window in windows {
                     var windowRef: CGWindowID = 0

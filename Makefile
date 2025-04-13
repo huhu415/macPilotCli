@@ -14,4 +14,4 @@ stream:
 	log stream --predicate 'category == "mcp"' --info --debug
 
 format:
-	swiftformat .
+	swiftformat --swiftversion 6.1 .

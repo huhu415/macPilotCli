@@ -13,17 +13,17 @@ class ScreenCaptureManager: NSObject, SCStreamDelegate, SCStreamOutput {
 
         SCShareableContent.getWithCompletionHandler {
             [weak self] content, error in
-            guard let self = self else { return }
+            guard let self else { return }
 
-            if let error = error {
+            if let error {
                 print("获取共享内容失败: \(error.localizedDescription)")
-                self.completionHandler?(nil)
+                completionHandler?(nil)
                 return
             }
 
-            guard let content = content, !content.displays.isEmpty else {
+            guard let content, !content.displays.isEmpty else {
                 print("未找到可用的显示器")
-                self.completionHandler?(nil)
+                completionHandler?(nil)
                 return
             }
 
@@ -45,18 +45,18 @@ class ScreenCaptureManager: NSObject, SCStreamDelegate, SCStreamOutput {
             config.height = pixelHeight // 设置物理像素高度
 
             do {
-                self.stream = SCStream(
+                stream = SCStream(
                     filter: filter, configuration: config, delegate: self
                 )
-                try self.stream?.addStreamOutput(
+                try stream?.addStreamOutput(
                     self, type: .screen,
                     sampleHandlerQueue: .global(qos: .userInteractive)
                 )
-                self.stream?.startCapture()
+                stream?.startCapture()
             } catch {
                 print("创建流失败: \(error.localizedDescription)")
-                self.stream = nil
-                self.completionHandler?(nil)
+                stream = nil
+                completionHandler?(nil)
             }
         }
     }
@@ -66,13 +66,13 @@ class ScreenCaptureManager: NSObject, SCStreamDelegate, SCStreamOutput {
         _ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer,
         of type: SCStreamOutputType
     ) {
-        guard type == .screen && !hasProcessedFrame else { return }
+        guard type == .screen, !hasProcessedFrame else { return }
 
         if let image = NSImage(from: sampleBuffer) {
             hasProcessedFrame = true
             completionHandler?(image)
             stream.stopCapture { [weak self] error in
-                if let error = error {
+                if let error {
                     print("停止捕获失败: \(error)")
                 }
                 self?.stream = nil
