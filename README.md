@@ -4,18 +4,15 @@ MacPilot CLI is an open-source tool that enables Large Language Models (LLMs) to
 It provides a collection of system tools that allow AI assistants to perform various operations on macOS systems.
 
 ## Tool Documentation
-
-| Tool Name | Description | Input Parameters |
-|-----------|-------------|------------------|
-| `getCursorPosition` | Get the current mouse position and screen details | None |
-| `controlMouse` | Move the mouse to specified position and optionally click | `x`: X coordinate, `y`: Y coordinate, `click`: Boolean to click or not, `rightClick`: Boolean to right-click or not |
-| `pasteText` | Copy text to clipboard and paste it | `text`: Text to paste |
-| `captureScreen` | Take a screenshot of the entire screen and return image data | None |
-| `shell` | Execute a shell command and return the output | `command`: Command to execute, `args`: Optional arguments array |
-| `openApp` | Launch an application | `bundleId`: Application identifier or `appName`: Application name |
-| `listApps` | Return a list of installed applications | None |
-| `getWindowsInfo` | Return information about windows | `focusedOnly`: Boolean to get only focused window |
-| `getWindowA11yInfo` | Return detailed accessibility information about a window | `pid`: Process ID, `windowNumber`: Window number |
+  - `getCursorPosition`
+  - `controlMouse`
+  - `pasteText`
+  - `captureScreen`
+  - `shell`
+  - `openApp`
+  - `listApps`
+  - `getWindowsInfo`
+  - `getWindowA11yInfo`
 
 ## Getting Started
 
