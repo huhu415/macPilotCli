@@ -7,18 +7,15 @@ It provides a collection of system tools that allow AI assistants to perform var
 
 | Tool Name | Description | Input Parameters |
 |-----------|-------------|------------------|
-| `repeat` | Echo back the input text | `text`: String to repeat |
-| `getCursorPosition` | Returns the current mouse position and screen details | None |
-| `moveCursor` | Moves the mouse cursor to specific coordinates | `x`: X coordinate, `y`: Y coordinate |
-| `clickMouse` | Performs a mouse click at the current cursor position | None |
-| `pasteText` | Copies text to clipboard and pastes it | `text`: Text to paste |
-| `captureScreen` | Takes a screenshot of the entire screen | None |
-| `executeCommand` | Runs a shell command and returns the output | `command`: Command to execute, `args`: Optional arguments array |
-| `launchApp` | Launches an application | `bundleId & Application identifier` or `appName & Application name` |
-| `getAppsList` | Returns a list of installed applications | None |
-| `getWindowsList` | Returns information about all windows | None |
-| `getFocusedWindowInfo` | Returns information about the focused window | None |
-| `getWindowInfo` | Returns detailed information about a window | `pid`: Optional process ID |
+| `getCursorPosition` | Get the current mouse position and screen details | None |
+| `controlMouse` | Move the mouse to specified position and optionally click | `x`: X coordinate, `y`: Y coordinate, `click`: Boolean to click or not, `rightClick`: Boolean to right-click or not |
+| `pasteText` | Copy text to clipboard and paste it | `text`: Text to paste |
+| `captureScreen` | Take a screenshot of the entire screen and return image data | None |
+| `shell` | Execute a shell command and return the output | `command`: Command to execute, `args`: Optional arguments array |
+| `openApp` | Launch an application | `bundleId`: Application identifier or `appName`: Application name |
+| `listApps` | Return a list of installed applications | None |
+| `getWindowsInfo` | Return information about windows | `focusedOnly`: Boolean to get only focused window |
+| `getWindowA11yInfo` | Return detailed accessibility information about a window | `pid`: Process ID, `windowNumber`: Window number |
 
 ## Getting Started
 

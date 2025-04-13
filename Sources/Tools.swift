@@ -10,9 +10,11 @@ let mcpLogger = Logger(subsystem: "com.macpilot.mcp", category: "mcp")
 struct EmptyInput {}
 
 @Schemable
-struct CursorMoveInput {
-    let x: String
-    let y: String
+struct MouseControlInput {
+    let x: String?
+    let y: String?
+    let click: Bool?
+    let rightClick: Bool?
 }
 
 @Schemable
@@ -70,22 +72,35 @@ let tools: [any CallableTool] = [
     },
 
     Tool(
-        name: "moveCursor",
-        description: "Move the mouse to the specified position"
-    ) { (input: CursorMoveInput) in
-        if let x = Double(input.x), let y = Double(input.y) {
+        name: "controlMouse",
+        description: "Move the mouse to the specified position and optionally click. If no coordinates are provided, click at the current position. Use rightClick=true for right-click"
+    ) { (input: MouseControlInput) in
+        // 确定使用哪个鼠标按钮
+        let mouseButton: CGMouseButton = input.rightClick == true ? .right : .left
+        
+        // 如果提供了坐标，移动鼠标到指定位置
+        if let xStr = input.x, let yStr = input.y,
+           let x = Double(xStr), let y = Double(yStr)
+        {
             InputControl.moveMouse(to: CGPoint(x: x, y: y))
-            return [.text(.init(text: "鼠标已移动到 \(x), \(y)"))]
-        }
-        return [.text(.init(text: "参数无效"))]
-    },
 
-    Tool(
-        name: "clickMouse",
-        description: "Click the mouse at the current position"
-    ) { (_: EmptyInput) in
-        InputControl.mouseClick(at: InputControl.getCurrentMousePosition())
-        return [.text(.init(text: "已点击鼠标"))]
+            // 如果需要点击，在新位置点击
+            if input.click == true {
+                InputControl.mouseClick(at: CGPoint(x: x, y: y), button: mouseButton)
+                let buttonType = input.rightClick == true ? "right-clicked" : "clicked"
+                return [.text(.init(text: "Mouse moved to \(x), \(y) and \(buttonType)"))]
+            }
+            return [.text(.init(text: "Mouse moved to \(x), \(y)"))]
+        }
+
+        // 如果没有提供坐标但需要点击，在当前位置点击
+        if input.click == true {
+            InputControl.mouseClick(at: InputControl.getCurrentMousePosition(), button: mouseButton)
+            let buttonType = input.rightClick == true ? "right-clicked" : "clicked"
+            return [.text(.init(text: "Mouse \(buttonType) at current position"))]
+        }
+
+        return [.text(.init(text: "Invalid parameters, please provide coordinates or set click to true"))]
     },
 
     // 本质是把文本放在剪贴板, 然后按下command+v
