@@ -28,6 +28,14 @@ struct ScrollMouseInput {
 }
 
 @Schemable
+struct PressKeyInput {
+    @SchemaOptions(description: "Key to press")
+    let key: String
+    @SchemaOptions(description: "Modifiers to press. (shift, control, option, command, etc.)")
+    let modifiers: String?
+}
+
+@Schemable
 struct PasteInput {
     @SchemaOptions(description: "Text to paste")
     let text: String
@@ -149,8 +157,42 @@ let tools: [any CallableTool] = [
         pasteboard.declareTypes([.string], owner: nil)
         pasteboard.setString(input.text, forType: .string)
 
-        InputControl.pressKeys(modifiers: .maskCommand, keyCodes: KeyCode.v.rawValue)
+        InputControl.pressKeys(modifiers: .maskCommand, keyCodes: VirtualKeyCode.v.rawValue)
         return [.text(.init(text: "已粘贴文本"))]
+    },
+
+    // 操作键盘
+    Tool(
+        name: "pressKey",
+        description: "Press a key"
+    ) { (input: PressKeyInput) in
+        // 首先验证键值是否有效
+        guard let keyCode = VirtualKeyCode.fromString(str: input.key) else {
+            let validKeys = VirtualKeyCode.allCases.map { String(describing: $0) }.joined(separator: ", ")
+            return [.text(.init(text: "Invalid key: \(input.key). Valid keys are: \(validKeys)"))]
+        }
+
+        // 处理修饰键
+        if let modifiers = input.modifiers {
+            let modifiersList = modifiers.split(separator: " ").map(String.init)
+
+            // 验证修饰键
+            let invalidModifiers = modifiersList.filter { !eventFlagDictionary.keys.contains($0) }
+            if !invalidModifiers.isEmpty {
+                let validModifiers = eventFlagDictionary.keys.joined(separator: ", ")
+                return [.text(.init(text: "Invalid modifiers: \(invalidModifiers.joined(separator: ", ")). Valid modifiers are: \(validModifiers)"))]
+            }
+
+            // 创建修饰键标志并执行按键
+            let flags = CGEventFlags(modifiersList.compactMap { eventFlagDictionary[$0] })
+            InputControl.pressKeys(modifiers: flags, keyCodes: keyCode.rawValue)
+        } else {
+            // 无修饰键的情况
+            InputControl.pressKey(keyCode: keyCode.rawValue)
+        }
+
+        let modifierText = input.modifiers.map { " with modifiers: \($0)" } ?? ""
+        return [.text(.init(text: "Pressed key: \(input.key)\(modifierText)"))]
     },
 
     Tool(
