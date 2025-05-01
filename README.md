@@ -14,6 +14,9 @@ It provides a collection of system tools that allow AI assistants to perform var
   - `getWindowsInfo`
   - `getWindowA11yInfo`
 
+## Tools To Be Implemented
+- [ ] Drag mouse
+
 ## Getting Started
 
 1. You need a Mac computer with Apple Silicon running macOS 14.0 (Sonoma) or later

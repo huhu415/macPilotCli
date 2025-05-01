@@ -232,12 +232,18 @@ class InputControl {
 
     // 模拟键盘按键
     static func pressKey(keyCode: CGKeyCode) {
+        let source = CGEventSource(stateID: .hidSystemState)
         let keyDown = CGEvent(
-            keyboardEventSource: nil, virtualKey: keyCode, keyDown: true
+            keyboardEventSource: source, virtualKey: keyCode, keyDown: true
         )
         let keyUp = CGEvent(
-            keyboardEventSource: nil, virtualKey: keyCode, keyDown: false
+            keyboardEventSource: source, virtualKey: keyCode, keyDown: false
         )
+
+        // 在使用了pressKeys设置了flags后, 系统不会自动重置flags, 所以需要手动重置
+        // 并且在pressKeys后面设置为空没用, 很奇怪
+        keyDown?.flags = CGEventFlags()
+        keyUp?.flags = CGEventFlags()
 
         keyDown?.post(tap: .cghidEventTap)
         keyUp?.post(tap: .cghidEventTap)
@@ -262,5 +268,6 @@ class InputControl {
         // 发送事件
         keyDown?.post(tap: .cghidEventTap)
         keyUp?.post(tap: .cghidEventTap)
+
     }
 }
