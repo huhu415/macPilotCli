@@ -3,27 +3,23 @@ import SwiftUI
 
 // 添加 ScreenCaptureManager 类
 class ScreenCaptureManager: NSObject, SCStreamDelegate, SCStreamOutput {
-    private var stream: SCStream? // 这是一个可选类型的属性
-    private var hasProcessedFrame = false // 添加标志位来追踪是否已处理过帧
-    private var completionHandler: ((NSImage?) -> Void)?
+    private var stream: SCStream?
+    private var frameProcessor: ((NSImage) -> Void)?
 
     // 捕获全屏截图
-    func captureFullScreen(completion: @escaping (NSImage?) -> Void) {
-        completionHandler = completion
+    func captureFullScreen(processor: @escaping (NSImage) -> Void) {
+        frameProcessor = processor
 
-        SCShareableContent.getWithCompletionHandler {
-            [weak self] content, error in
+        SCShareableContent.getWithCompletionHandler { [weak self] content, error in
             guard let self else { return }
 
             if let error {
-                print("获取共享内容失败: \(error.localizedDescription)")
-                completionHandler?(nil)
+                mcpLogger.error("获取共享内容失败: \(error.localizedDescription)")
                 return
             }
 
             guard let content, !content.displays.isEmpty else {
-                print("未找到可用的显示器")
-                completionHandler?(nil)
+                mcpLogger.error("未找到可用的显示器")
                 return
             }
 
@@ -54,32 +50,56 @@ class ScreenCaptureManager: NSObject, SCStreamDelegate, SCStreamOutput {
                 )
                 stream?.startCapture()
             } catch {
-                print("创建流失败: \(error.localizedDescription)")
+                mcpLogger.error("创建流失败: \(error.localizedDescription)")
                 stream = nil
-                completionHandler?(nil)
             }
         }
     }
 
-    // 处理捕获到的帧, 这是回调
+    // 处理捕获到的帧
     func stream(
-        _ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer,
+        _ stream: SCStream,
+        didOutputSampleBuffer sampleBuffer: CMSampleBuffer,
         of type: SCStreamOutputType
     ) {
-        guard type == .screen, !hasProcessedFrame else { return }
+        mcpLogger.info("process stream output")
+        guard type == .screen else { return }
 
-        if let image = NSImage(from: sampleBuffer) {
-            hasProcessedFrame = true
-            completionHandler?(image)
+        // Convert CMSampleBuffer to NSImage
+        guard let image = NSImage(from: sampleBuffer) else {
+            mcpLogger.error("Failed to convert CMSampleBuffer to NSImage")
+            // Optionally, handle the error, e.g., stop the stream or call frameProcessor with an error indicator
             stream.stopCapture { [weak self] error in
                 if let error {
-                    print("停止捕获失败: \(error)")
+                    mcpLogger.error("停止捕获失败: \(error)")
                 }
                 self?.stream = nil
-                self?.hasProcessedFrame = false
-                self?.completionHandler = nil
+                self?.frameProcessor = nil
             }
+            return
         }
+
+        // 调用处理器
+        frameProcessor?(image)
+
+        // 停止捕获
+        stream.stopCapture { [weak self] error in
+            if let error {
+                mcpLogger.error("停止捕获失败: \(error)")
+            }
+            self?.stream = nil
+            self?.frameProcessor = nil
+        }
+    }
+
+    // 处理流错误
+    func stream(
+        _: SCStream,
+        didStopWithError error: Error
+    ) {
+        mcpLogger.error("屏幕捕获流错误: \(error.localizedDescription)")
+        stream = nil
+        frameProcessor = nil
     }
 }
 

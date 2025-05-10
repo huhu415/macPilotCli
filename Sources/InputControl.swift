@@ -157,7 +157,7 @@ enum VirtualKeyCode: CGKeyCode, CaseIterable {
 
     static func fromString(str: String) -> VirtualKeyCode? {
         // 直接通过枚举名称匹配
-        return VirtualKeyCode.allCases.first {
+        VirtualKeyCode.allCases.first {
             String(describing: $0) == str
         }
     }

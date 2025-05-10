@@ -198,32 +198,38 @@ let tools: [any CallableTool] = [
     Tool(
         name: "captureScreen",
         description: "Capture the full screen and return the image data(base64 encoded)"
-    ) { (_: EmptyInput) async throws in
-        let screenCaptureManager = ScreenCaptureManager()
+    ) { (_: EmptyInput) async in
+        if !CGPreflightScreenCaptureAccess() {
+            CGRequestScreenCaptureAccess()
+            return [.text(.init(text: "Do not have screen recording permission. check System Settings."))]
+        }
+        mcpLogger.info("Starting screen capture...")
 
-        let image: Data? = await withCheckedContinuation {
-            (continuation: CheckedContinuation<Data?, Never>) in
-            mcpLogger.info("Capturing screen...")
+        let screenCaptureManager = ScreenCaptureManager()
+        let image: Data? = await withCheckedContinuation { continuation in
             screenCaptureManager.captureFullScreen { capturedImage in
-                if let unwrappedImage = capturedImage,
-                   let tiffData = unwrappedImage.tiffRepresentation,
+                mcpLogger.info("Image captured, converting to JPEG...")
+                if let tiffData = capturedImage.tiffRepresentation,
                    let bitmapImage = NSBitmapImageRep(data: tiffData),
                    let jpegData = bitmapImage.representation(
                        using: .jpeg, properties: [.compressionFactor: 0.75]
                    )
                 {
-                    mcpLogger.info("Capturing screen successful")
+                    mcpLogger.info("Successfully converted image to JPEG, size: \(jpegData.count) bytes")
                     continuation.resume(returning: jpegData)
                 } else {
+                    mcpLogger.error("Failed to convert image to JPEG")
                     continuation.resume(returning: nil)
                 }
             }
         }
 
         if image == nil {
-            return [.text(.init(text: "Screenshot failed"))]
+            mcpLogger.error("Screen capture failed, returning error")
+            return [.text(.init(text: "Screenshot failed. Make sure your app has screen recording permission in System Settings > Privacy & Security > Screen Recording."))]
         }
 
+        mcpLogger.info("Successfully captured screen, returning image data")
         return [.image(.init(data: image!.base64EncodedString(), mimeType: "image/jpeg"))]
     },
 
