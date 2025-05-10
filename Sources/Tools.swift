@@ -203,13 +203,12 @@ let tools: [any CallableTool] = [
             CGRequestScreenCaptureAccess()
             return [.text(.init(text: "Do not have screen recording permission. check System Settings."))]
         }
-        mcpLogger.info("Starting screen capture...")
+        mcpLogger.info("MCP tool captureScreen start")
 
         let screenCaptureManager = ScreenCaptureManager()
         let image: Data? = await withCheckedContinuation { continuation in
             screenCaptureManager.captureFullScreen { capturedImage in
-                mcpLogger.info("Image captured, converting to JPEG...")
-                if let tiffData = capturedImage.tiffRepresentation,
+                if let tiffData = capturedImage?.tiffRepresentation,
                    let bitmapImage = NSBitmapImageRep(data: tiffData),
                    let jpegData = bitmapImage.representation(
                        using: .jpeg, properties: [.compressionFactor: 0.75]

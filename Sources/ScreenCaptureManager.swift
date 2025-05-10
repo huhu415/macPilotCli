@@ -4,14 +4,15 @@ import SwiftUI
 // 添加 ScreenCaptureManager 类
 class ScreenCaptureManager: NSObject, SCStreamDelegate, SCStreamOutput {
     private var stream: SCStream?
-    private var frameProcessor: ((NSImage) -> Void)?
+    private var frameProcessor: ((NSImage?) -> Void)?
 
     // 捕获全屏截图
-    func captureFullScreen(processor: @escaping (NSImage) -> Void) {
+    func captureFullScreen(processor: @escaping (NSImage?) -> Void) {
         frameProcessor = processor
 
         SCShareableContent.getWithCompletionHandler { [weak self] content, error in
             guard let self else { return }
+            mcpLogger.info("get shareable content success")
 
             if let error {
                 mcpLogger.error("获取共享内容失败: \(error.localizedDescription)")
@@ -62,8 +63,9 @@ class ScreenCaptureManager: NSObject, SCStreamDelegate, SCStreamOutput {
         didOutputSampleBuffer sampleBuffer: CMSampleBuffer,
         of type: SCStreamOutputType
     ) {
-        mcpLogger.info("process stream output")
         guard type == .screen else { return }
+
+        mcpLogger.info("screen capture stream success")
 
         // Convert CMSampleBuffer to NSImage
         guard let image = NSImage(from: sampleBuffer) else {
@@ -94,12 +96,21 @@ class ScreenCaptureManager: NSObject, SCStreamDelegate, SCStreamOutput {
 
     // 处理流错误
     func stream(
-        _: SCStream,
+        _ stream: SCStream,
         didStopWithError error: Error
     ) {
-        mcpLogger.error("屏幕捕获流错误: \(error.localizedDescription)")
-        stream = nil
-        frameProcessor = nil
+        mcpLogger.error("screen capture stream error: \(error.localizedDescription)")
+
+        frameProcessor?(nil)
+
+        // 停止捕获
+        stream.stopCapture { [weak self] error in
+            if let error {
+                mcpLogger.error("停止捕获失败: \(error)")
+            }
+            self?.stream = nil
+            self?.frameProcessor = nil
+        }
     }
 }
 
